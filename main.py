@@ -1,4 +1,4 @@
-# main.py — 극지식물 생육 분석 대시보드 (둥근 글꼴 · 흰 배경 · 디자인 다듬음)
+# main.py — 극지식물 생육 차이 분석 대시보드 (Jua 폰트 전체 통일 · 한 화면 열람)
 import io, os as _os, re
 import numpy as np
 import pandas as pd
@@ -8,17 +8,15 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # ────────────────────────────────────────────────────
-# 둥근 글꼴 · 흰 배경 CSS
-#   본문: Gowun Dodum (둥근 고딕)
-#   제목/강조: Jua (부드러운 둥근 느낌)
+# 폰트: Jua (전체 통일) + 흰 배경 CSS
 # ────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
 
 html, body, [class*="css"] {
-   font-family: 'Gowun Dodum', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
-   letter-spacing: -0.2px;
+   font-family: 'Jua', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+   letter-spacing: 0.2px;
 }
 
 .stApp {
@@ -28,31 +26,32 @@ html, body, [class*="css"] {
 /* 상단 배너 */
 .banner-box {
    background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e9 50%, #c8e6c9 100%);
-   border-radius: 0 0 22px 22px;
+   border-radius: 0 0 24px 24px;
    border-bottom: 2px solid #a5d6a7;
-   padding: 22px 36px 18px;
+   padding: 20px 36px 16px;
    display: flex;
    align-items: center;
    justify-content: center;
-   gap: 20px;
-   margin-bottom: 32px;
-   box-shadow: 0 3px 16px rgba(0,0,0,0.05);
+   gap: 18px;
+   margin-bottom: 30px;
+   box-shadow: 0 3px 14px rgba(0,0,0,0.04);
 }
 
 .banner-title {
-   font-family: 'Jua', 'Gowun Dodum', sans-serif;
-   font-size: 26px;
+   font-family: 'Jua', sans-serif;
+   font-size: 27px;
    font-weight: 400;
    color: #2e7d32;
-   letter-spacing: 0.5px;
+   letter-spacing: 0.8px;
 }
 
 .banner-sub {
+   font-family: 'Jua', sans-serif;
    font-size: 15px;
    color: #558b2f;
    font-weight: 400;
    border-left: 1px solid #c8e6c9;
-   padding-left: 14px;
+   padding-left: 13px;
 }
 
 /* 종이 느낌 카드 */
@@ -60,12 +59,12 @@ html, body, [class*="css"] {
    background: #ffffff;
    border: 1px solid #e0e0e0;
    border-radius: 16px;
-   padding: 20px 22px;
+   padding: 18px 20px;
    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-   transition: box-shadow 0.3s ease, transform 0.3s ease;
+   transition: box-shadow 0.25s ease, transform 0.25s ease;
 }
 .paper-card:hover {
-   box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+   box-shadow: 0 5px 18px rgba(0,0,0,0.08);
    transform: translateY(-1px);
 }
 
@@ -73,12 +72,12 @@ html, body, [class*="css"] {
 .stTabs [role="tab"] {
    background: transparent;
    color: #78909c;
-   font-family: 'Jua', 'Gowun Dodum', sans-serif;
+   font-family: 'Jua', sans-serif;
    font-weight: 400;
    border-bottom: 2px solid transparent;
    transition: all 0.2s ease;
-   padding: 10px 6px;
-   letter-spacing: 0.2px;
+   padding: 9px 5px;
+   letter-spacing: 0.3px;
 }
 .stTabs [role="tab"][aria-selected="true"] {
    background: #f1f8e9;
@@ -96,17 +95,16 @@ section.sidebar .stMarkdown,
 section.sidebar p,
 section.sidebar li {
    color: #546e7a;
-   font-family: 'Gowun Dodum', 'Noto Sans KR', sans-serif;
+   font-family: 'Jua', sans-serif;
 }
 section.sidebar .stSelectbox,
 section.sidebar .stMultiSelect,
-section.sidebar .stFileUploader,
-section.sidebar .stSearchbox {
+section.sidebar .stFileUploader {
    background: #ffffff !important;
    border: 1px solid #dcedc8;
    border-radius: 10px;
    color: #37474f;
-   font-family: 'Gowun Dodum', 'Noto Sans KR', sans-serif;
+   font-family: 'Jua', sans-serif;
 }
 
 /* metric 카드 */
@@ -156,7 +154,7 @@ div[data-testid="stWarning"] {
    border-radius: 10px;
    color: #2e7d32;
    font-weight: 400;
-   font-family: 'Gowun Dodum', 'Noto Sans KR', sans-serif;
+   font-family: 'Jua', sans-serif;
    transition: all 0.25s ease;
 }
 .stButton > button:hover {
@@ -185,7 +183,6 @@ div[data-testid="stDataFrame"] {
 ::-webkit-scrollbar-thumb { background: #a5d6a7; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #81c784; }
 
-/* divider */
 hr {
    border-color: #c8e6c9 !important;
 }
@@ -193,7 +190,7 @@ hr {
 """, unsafe_allow_html=True)
 
 # ────────────────────────────────────────────────────
-# 상단 배너 (직접 작성)
+# 상단 배너
 # ────────────────────────────────────────────────────
 st.markdown("""
 <div class="banner-box">
@@ -220,7 +217,7 @@ def read_csv(file):
     return pd.DataFrame()
 
 # ────────────────────────────────────────────────────
-# 열 이름 표준화 (KeyError 방지)
+# 열 이름 표준화
 # ────────────────────────────────────────────────────
 def std_cols(df):
     df = df.copy()
@@ -300,28 +297,28 @@ def extract_school(filename):
     return base[:12] if len(base) > 0 else "우리 학교"
 
 # ────────────────────────────────────────────────────
-# Plotly 테마 헬퍼 (흰 배경 · 둥근 그리드)
+# Plotly 테마 헬퍼 (Jua 폰트 + 흰 배경)
 # ────────────────────────────────────────────────────
 def apply_plot_theme(fig):
     fig.update_layout(
         paper_bgcolor="rgba(255,255,255,0.96)",
         plot_bgcolor="rgba(255,255,255,0.96)",
         font=dict(
-            family="Gowun Dodum, Noto Sans KR, Malgun Gothic, sans-serif",
+            family="Jua, Noto Sans KR, Malgun Gothic, sans-serif",
             color="#546e7a",
         ),
     )
     fig.update_xaxes(
         gridcolor="rgba(165,214,167,0.28)",
         zerolinecolor="rgba(165,214,167,0.4)",
-        tickfont=dict(color="#78909c", family="Gowun Dodum, sans-serif"),
+        tickfont=dict(color="#78909c", family="Jua, sans-serif"),
         linecolor="rgba(165,214,167,0.5)",
         linewidth=1,
     )
     fig.update_yaxes(
         gridcolor="rgba(165,214,167,0.28)",
         zerolinecolor="rgba(165,214,167,0.4)",
-        tickfont=dict(color="#78909c", family="Gowun Dodum, sans-serif"),
+        tickfont=dict(color="#78909c", family="Jua, sans-serif"),
         linecolor="rgba(165,214,167,0.5)",
         linewidth=1,
     )
@@ -394,63 +391,62 @@ tab1, tab2, tab3 = st.tabs([
 ])
 
 # ══════════════════════════════════════════════════════
-# Tab 1: 실험 소개
+# Tab 1: 실험 소개  (단일 컬럼 — 글 한 화면 열람)
 # ══════════════════════════════════════════════════════
 with tab1:
     try:
-        col_l, col_r = st.columns([1, 1])
+        # 컬럼 분할 없이 한 화면에 전부 표시되도록
+        st.markdown('<div class="paper-card">', unsafe_allow_html=True)
+        st.subheader("🎯 실험 목적")
+        st.markdown("""
+        이 실험은 **극지식물 개체의 생육을 가장 잘 드러내는 지표가 무엇인지** 찾기 위해 진행했어요.
 
-        with col_l:
-            with st.container():
-                st.markdown('<div class="paper-card">', unsafe_allow_html=True)
-                st.subheader("🎯 실험 목적")
-                st.markdown("""
-                이 실험은 **극지식물 개체의 생육을 가장 잘 드러내는 지표가 무엇인지** 찾기 위해 진행했어요.
+        같은 스마트팜 환경에서 자라는 식물이라도 개체마다 잎 수, 줄기 길이, 생중량 등에 차이가 나타나요.  
+        이 차이를 여러 지표로 비교하고, 어떤 지표가 생장 정도를 가장 잘 설명하는지 알아보는 것이 목적이에요.
+        """.strip())
+        st.markdown("---")
+        st.markdown(
+            "📌 *상관계수*: 두 값이 함께 증가하거나 감소하는 정도를 "
+            "**-1 ~ 1** 사이 숫자로 나타낸 값이에요. "
+            "1에 가까울수록 함께 증가, -1에 가까울수록 함께 감소, "
+            "0에 가까울수록 관계가 약해요."
+        )
+        st.markdown(
+            "📌 *생중량*: 식물을 수확해 마른 잎·줄기·뿌리의 무게를 "
+            "모두 합한 값이에요. 식물의 전체 생장량을 나타내는 대표 지표예요."
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
 
-                같은 스마트팜 환경에서 자라는 식물이라도 개체마다 잎 수, 줄기 길이, 생중량 등에 차이가 나타나요.  
-                이 차이를 여러 지표로 비교하고, 어떤 지표가 생장 정도를 가장 잘 설명하는지 알아보는 것이 목적이에요.
-                """.strip())
-                st.markdown("---")
-                st.markdown(
-                    "📌 *상관계수*: 두 값이 함께 증가하거나 감소하는 정도를 "
-                    "**-1 ~ 1** 사이 숫자로 나타낸 값이에요. "
-                    "1에 가까울수록 함께 증가, -1에 가까울수록 함께 감소, "
-                    "0에 가까울수록 관계가 약해요."
-                )
-                st.markdown(
-                    "📌 *생중량*: 식물을 수확해 마른 잎·줄기·뿌리의 무게를 "
-                    "모두 합한 값이에요. 식물의 전체 생장량을 나타내는 대표 지표예요."
-                )
-                st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("---")
 
-        with col_r:
-            with st.container():
-                st.markdown('<div class="paper-card">', unsafe_allow_html=True)
-                st.subheader("🔍 핵심 발견")
-                st.markdown("""
-                관찰된 주요 패턴 세 가지를 미리 살펴볼게요.
-                """.strip())
-                items = [
-                    (
-                        "🌿 강한 길이 상관관계",
-                        "지상부 길이와 지하부 길이는 강한 상관관계를 보여, "
-                        "줄기가 길어질수록 뿌리도 함께 길어지는 경향이 뚜렷해요.",
-                    ),
-                    (
-                        "🌱 큰 생중량 차이",
-                        "같은 스마트팜 환경에서도 식물마다 생중량 차이가 크게 "
-                        "나타나요. 같은 조건에서 자란다고 해서 "
-                        "같은 결과로 이어지지는 않네요.",
-                    ),
-                    (
-                        "🍃 잎 수가 가장 관련 깊음",
-                        "생중량 차이는 길이 지표만으로 설명되지 않으며, "
-                        "**잎 수**가 생중량과 가장 관련 깊은 지표로 확인됐어요.",
-                    ),
-                ]
-                for title, desc in items:
-                    st.markdown(f"**{title}**  {desc}")
-                st.markdown('</div>', unsafe_allow_html=True)
+        # 핵심 발견 (별도 카드)
+        with st.container():
+            st.markdown('<div class="paper-card">', unsafe_allow_html=True)
+            st.subheader("🔍 핵심 발견")
+            st.markdown("""
+            관찰된 주요 패턴 세 가지를 미리 살펴볼게요.
+            """.strip())
+            items = [
+                (
+                    "🌿 강한 길이 상관관계",
+                    "지상부 길이와 지하부 길이는 강한 상관관계를 보여, "
+                    "줄기가 길어질수록 뿌리도 함께 길어지는 경향이 뚜렷해요.",
+                ),
+                (
+                    "🌱 큰 생중량 차이",
+                    "같은 스마트팜 환경에서도 식물마다 생중량 차이가 크게 "
+                    "나타나요. 같은 조건에서 자란다고 해서 "
+                    "같은 결과로 이어지지는 않네요.",
+                ),
+                (
+                    "🍃 잎 수가 가장 관련 깊음",
+                    "생중량 차이는 길이 지표만으로 설명되지 않으며, "
+                    "**잎 수**가 생중량과 가장 관련 깊은 지표로 확인됐어요.",
+                ),
+            ]
+            for title, desc in items:
+                st.markdown(f"**{title}**  {desc}")
+            st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown("---")
         st.subheader("📋 데이터 요약")
@@ -884,7 +880,7 @@ with tab3:
 
             st.markdown("---")
 
-            # ── 원본 데이터 및 다운로드 ──
+            # ── 원본 데이터 및 다운로드 (고유 key) ──
             with st.expander("📋 생육 데이터 원본 테이블 및 CSV 다운로드"):
                 st.dataframe(gd, width="stretch")
                 if not gd.empty:
