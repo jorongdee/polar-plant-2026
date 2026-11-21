@@ -1,29 +1,40 @@
-# main.py — 극지식물 생육 차이 분석 대시보드 (Jua 폰트 전체 통일 · 한 화면 열람)
+# main.py — 극지식물 생육 차이 분석 대시보드 (Gowun Dodum 전체 통일 · 한 화면 열람)
 import io, os as _os, re
 import numpy as np
 import pandas as pd
 import streamlit as st
-import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # ────────────────────────────────────────────────────
-# 폰트: Jua (전체 통일) + 흰 배경 CSS
+# 폰트: Gowun Dodum (배너 제목과 동일한 둥근 고딕 · 전체 통일)
 # ────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
 
-html, body, [class*="css"] {
-   font-family: 'Jua', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
-   letter-spacing: 0.2px;
+html, body, [class*="css"],
+div[data-testid="stInfo"],
+div[data-testid="stWarning"],
+div.stMetric,
+section.sidebar .stMarkdown,
+section.sidebar p,
+section.sidebar li,
+section.sidebar .stSelectbox,
+section.sidebar .stMultiSelect,
+section.sidebar .stFileUploader,
+.stButton > button,
+.stExpander {
+   font-family: 'Gowun Dodum', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+   letter-spacing: 0.1px;
+   word-break: keep-all;
 }
 
 .stApp {
    background: #ffffff !important;
 }
 
-/* 상단 배너 */
+/* 배너 — "극지식물 생육 차이 분석"에 쓰인 것과 동일 스타일 */
 .banner-box {
    background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e9 50%, #c8e6c9 100%);
    border-radius: 0 0 24px 24px;
@@ -38,33 +49,33 @@ html, body, [class*="css"] {
 }
 
 .banner-title {
-   font-family: 'Jua', sans-serif;
+   font-family: 'Gowun Dodum', sans-serif;
    font-size: 27px;
    font-weight: 400;
    color: #2e7d32;
-   letter-spacing: 0.8px;
+   letter-spacing: 0.6px;
 }
 
 .banner-sub {
-   font-family: 'Jua', sans-serif;
-   font-size: 15px;
+   font-family: 'Gowun Dodum', sans-serif;
+   font-size: 14px;
    color: #558b2f;
    font-weight: 400;
    border-left: 1px solid #c8e6c9;
-   padding-left: 13px;
+   padding-left: 12px;
 }
 
-/* 종이 느낌 카드 */
+/* 카드 */
 .paper-card {
    background: #ffffff;
    border: 1px solid #e0e0e0;
-   border-radius: 16px;
-   padding: 18px 20px;
-   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+   border-radius: 18px;
+   padding: 18px 22px;
+   box-shadow: 0 2px 10px rgba(0,0,0,0.04);
    transition: box-shadow 0.25s ease, transform 0.25s ease;
 }
 .paper-card:hover {
-   box-shadow: 0 5px 18px rgba(0,0,0,0.08);
+   box-shadow: 0 5px 18px rgba(0,0,0,0.07);
    transform: translateY(-1px);
 }
 
@@ -72,12 +83,12 @@ html, body, [class*="css"] {
 .stTabs [role="tab"] {
    background: transparent;
    color: #78909c;
-   font-family: 'Jua', sans-serif;
+   font-family: 'Gowun Dodum', sans-serif;
    font-weight: 400;
    border-bottom: 2px solid transparent;
    transition: all 0.2s ease;
-   padding: 9px 5px;
-   letter-spacing: 0.3px;
+   padding: 10px 6px;
+   letter-spacing: 0.2px;
 }
 .stTabs [role="tab"][aria-selected="true"] {
    background: #f1f8e9;
@@ -91,28 +102,13 @@ section.sidebar {
    background: #f9fbe7 !important;
    border-right: 1px solid #e0e0e0;
 }
-section.sidebar .stMarkdown,
-section.sidebar p,
-section.sidebar li {
-   color: #546e7a;
-   font-family: 'Jua', sans-serif;
-}
-section.sidebar .stSelectbox,
-section.sidebar .stMultiSelect,
-section.sidebar .stFileUploader {
-   background: #ffffff !important;
-   border: 1px solid #dcedc8;
-   border-radius: 10px;
-   color: #37474f;
-   font-family: 'Jua', sans-serif;
-}
 
-/* metric 카드 */
+/* metric */
 div.stMetric {
    background: #f1f8e9;
    border: 1px solid #c8e6c9;
-   border-radius: 12px;
-   padding: 8px 14px 6px;
+   border-radius: 14px;
+   padding: 8px 16px 6px;
    transition: box-shadow 0.2s ease;
 }
 div.stMetric:hover {
@@ -133,7 +129,7 @@ div.stMetric:hover {
    background: #fafafa;
 }
 
-/* info / warning */
+/* 안내 박스 */
 div[data-testid="stInfo"] {
    background: #f1f8e9;
    border-left: 4px solid #81c784;
@@ -154,7 +150,6 @@ div[data-testid="stWarning"] {
    border-radius: 10px;
    color: #2e7d32;
    font-weight: 400;
-   font-family: 'Jua', sans-serif;
    transition: all 0.25s ease;
 }
 .stButton > button:hover {
@@ -190,7 +185,7 @@ hr {
 """, unsafe_allow_html=True)
 
 # ────────────────────────────────────────────────────
-# 상단 배너
+# 배너 — "극지식물 생육 차이 분석" (폰트 동일)
 # ────────────────────────────────────────────────────
 st.markdown("""
 <div class="banner-box">
@@ -217,7 +212,7 @@ def read_csv(file):
     return pd.DataFrame()
 
 # ────────────────────────────────────────────────────
-# 열 이름 표준화
+# 열 이름 표준화 (KeyError 방지)
 # ────────────────────────────────────────────────────
 def std_cols(df):
     df = df.copy()
@@ -297,28 +292,28 @@ def extract_school(filename):
     return base[:12] if len(base) > 0 else "우리 학교"
 
 # ────────────────────────────────────────────────────
-# Plotly 테마 헬퍼 (Jua 폰트 + 흰 배경)
+# Plotly 테마 — Gowun Dodum 폰트 + 흰 배경
 # ────────────────────────────────────────────────────
 def apply_plot_theme(fig):
     fig.update_layout(
         paper_bgcolor="rgba(255,255,255,0.96)",
         plot_bgcolor="rgba(255,255,255,0.96)",
         font=dict(
-            family="Jua, Noto Sans KR, Malgun Gothic, sans-serif",
+            family="Gowun Dodum, Noto Sans KR, Malgun Gothic, sans-serif",
             color="#546e7a",
         ),
     )
     fig.update_xaxes(
         gridcolor="rgba(165,214,167,0.28)",
         zerolinecolor="rgba(165,214,167,0.4)",
-        tickfont=dict(color="#78909c", family="Jua, sans-serif"),
+        tickfont=dict(color="#78909c", family="Gowun Dodum, sans-serif"),
         linecolor="rgba(165,214,167,0.5)",
         linewidth=1,
     )
     fig.update_yaxes(
         gridcolor="rgba(165,214,167,0.28)",
         zerolinecolor="rgba(165,214,167,0.4)",
-        tickfont=dict(color="#78909c", family="Jua, sans-serif"),
+        tickfont=dict(color="#78909c", family="Gowun Dodum, sans-serif"),
         linecolor="rgba(165,214,167,0.5)",
         linewidth=1,
     )
@@ -391,11 +386,10 @@ tab1, tab2, tab3 = st.tabs([
 ])
 
 # ══════════════════════════════════════════════════════
-# Tab 1: 실험 소개  (단일 컬럼 — 글 한 화면 열람)
+# Tab 1: 실험 소개 (단일 컬럼 — 글 한 화면에 표시)
 # ══════════════════════════════════════════════════════
 with tab1:
     try:
-        # 컬럼 분할 없이 한 화면에 전부 표시되도록
         st.markdown('<div class="paper-card">', unsafe_allow_html=True)
         st.subheader("🎯 실험 목적")
         st.markdown("""
@@ -419,7 +413,6 @@ with tab1:
 
         st.markdown("---")
 
-        # 핵심 발견 (별도 카드)
         with st.container():
             st.markdown('<div class="paper-card">', unsafe_allow_html=True)
             st.subheader("🔍 핵심 발견")
@@ -573,7 +566,7 @@ with tab2:
 
             st.markdown("---")
 
-            # ── 통계 지표 카드 (delta_info 인자 없음) ──
+            # ── 통계 지표 카드 ──
             if stat_cols:
                 n_card = min(4, len(stat_cols))
                 cols_card = st.columns(n_card)
@@ -611,7 +604,6 @@ with tab2:
 
             st.markdown("---")
 
-            # ── 원본 데이터 및 다운로드 ──
             with st.expander("📋 생육 데이터 원본 테이블 및 CSV 다운로드"):
                 st.dataframe(gd, width="stretch")
                 if not gd.empty:
@@ -771,7 +763,7 @@ with tab3:
                             showscale=True,
                             colorbar=dict(
                                 title="생중량 (g)",
-                                tickfont=dict(color="#78909c"),
+                                tickfont=dict(color="#78909c", family="Gowun Dodum, sans-serif"),
                             ),
                         ),
                         line=dict(color="rgba(165,214,167,0.5)", width=1.2),
@@ -880,7 +872,6 @@ with tab3:
 
             st.markdown("---")
 
-            # ── 원본 데이터 및 다운로드 (고유 key) ──
             with st.expander("📋 생육 데이터 원본 테이블 및 CSV 다운로드"):
                 st.dataframe(gd, width="stretch")
                 if not gd.empty:
