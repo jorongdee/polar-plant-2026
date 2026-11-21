@@ -1,7 +1,5 @@
-# main.py — 극지식물 생육 분석 대시보드 (흰 배경 · 부드러운 테마 · ID 충돌 수정)
-import io
-import os as _os
-import re
+# main.py — 극지식물 생육 분석 대시보드 (둥근 글꼴 · 흰 배경 · 디자인 다듬음)
+import io, os as _os, re
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -10,60 +8,86 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # ────────────────────────────────────────────────────
-# 흰 배경 + 부드러운 초록 테마 CSS
+# 둥근 글꼴 · 흰 배경 CSS
+#   본문: Gowun Dodum (둥근 고딕)
+#   제목/강조: Jua (부드러운 둥근 느낌)
 # ────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap');
 
 html, body, [class*="css"] {
-   font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+   font-family: 'Gowun Dodum', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+   letter-spacing: -0.2px;
 }
 
 .stApp {
    background: #ffffff !important;
 }
 
+/* 상단 배너 */
 .banner-box {
-   background: linear-gradient(90deg, #f1f8e9 0%, #e8f5e9 40%, #c8e6c9 100%);
-   border-radius: 0 0 18px 18px;
+   background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e9 50%, #c8e6c9 100%);
+   border-radius: 0 0 22px 22px;
    border-bottom: 2px solid #a5d6a7;
-   padding: 20px 32px 16px;
+   padding: 22px 36px 18px;
    display: flex;
    align-items: center;
    justify-content: center;
-   gap: 18px;
-   margin-bottom: 30px;
-   box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+   gap: 20px;
+   margin-bottom: 32px;
+   box-shadow: 0 3px 16px rgba(0,0,0,0.05);
 }
 
+.banner-title {
+   font-family: 'Jua', 'Gowun Dodum', sans-serif;
+   font-size: 26px;
+   font-weight: 400;
+   color: #2e7d32;
+   letter-spacing: 0.5px;
+}
+
+.banner-sub {
+   font-size: 15px;
+   color: #558b2f;
+   font-weight: 400;
+   border-left: 1px solid #c8e6c9;
+   padding-left: 14px;
+}
+
+/* 종이 느낌 카드 */
 .paper-card {
    background: #ffffff;
    border: 1px solid #e0e0e0;
-   border-radius: 14px;
+   border-radius: 16px;
    padding: 20px 22px;
-   box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-   transition: box-shadow 0.25s ease;
+   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+   transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 .paper-card:hover {
-   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+   box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+   transform: translateY(-1px);
 }
 
+/* 탭 */
 .stTabs [role="tab"] {
    background: transparent;
-   color: #607d8b;
-   font-weight: 500;
+   color: #78909c;
+   font-family: 'Jua', 'Gowun Dodum', sans-serif;
+   font-weight: 400;
    border-bottom: 2px solid transparent;
    transition: all 0.2s ease;
-   padding: 12px 8px;
+   padding: 10px 6px;
+   letter-spacing: 0.2px;
 }
 .stTabs [role="tab"][aria-selected="true"] {
    background: #f1f8e9;
    color: #2e7d32;
    border-bottom: 2px solid #81c784;
-   font-weight: 600;
+   font-weight: 400;
 }
 
+/* 사이드바 */
 section.sidebar {
    background: #f9fbe7 !important;
    border-right: 1px solid #e0e0e0;
@@ -71,73 +95,100 @@ section.sidebar {
 section.sidebar .stMarkdown,
 section.sidebar p,
 section.sidebar li {
-   color: #455a64;
+   color: #546e7a;
+   font-family: 'Gowun Dodum', 'Noto Sans KR', sans-serif;
 }
 section.sidebar .stSelectbox,
 section.sidebar .stMultiSelect,
-section.sidebar .stFileUploader {
+section.sidebar .stFileUploader,
+section.sidebar .stSearchbox {
    background: #ffffff !important;
-   border: 1px solid #bdbdbd;
-   border-radius: 8px;
+   border: 1px solid #dcedc8;
+   border-radius: 10px;
    color: #37474f;
+   font-family: 'Gowun Dodum', 'Noto Sans KR', sans-serif;
 }
 
+/* metric 카드 */
 div.stMetric {
    background: #f1f8e9;
    border: 1px solid #c8e6c9;
-   border-radius: 10px;
+   border-radius: 12px;
    padding: 8px 14px 6px;
+   transition: box-shadow 0.2s ease;
+}
+div.stMetric:hover {
+   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 .stMetric .stMetricValue {
    color: #2e7d32;
-   font-weight: 700;
+   font-weight: 500;
 }
 .stMetric .stMetricLabel {
-   color: #546e7a;
+   color: #607d8b;
 }
 
+/* expander */
 .stExpander {
    border: 1px solid #e0e0e0;
-   border-radius: 10px;
+   border-radius: 12px;
    background: #fafafa;
 }
 
+/* info / warning */
 div[data-testid="stInfo"] {
    background: #f1f8e9;
    border-left: 4px solid #81c784;
-   border-radius: 8px;
-   color: #37474f;
+   border-radius: 10px;
+   color: #455a64;
 }
 div[data-testid="stWarning"] {
-   background: #fff3f0;
-   border-left: 4px solid #ef9a9a;
-   border-radius: 8px;
-   color: #4a2c2a;
+   background: #fff8e1;
+   border-left: 4px solid #ffb74d;
+   border-radius: 10px;
+   color: #5d4037;
 }
 
+/* 버튼 */
 .stButton > button {
    background: #e8f5e9;
    border: 1px solid #a5d6a7;
-   border-radius: 8px;
+   border-radius: 10px;
    color: #2e7d32;
-   font-weight: 500;
+   font-weight: 400;
+   font-family: 'Gowun Dodum', 'Noto Sans KR', sans-serif;
    transition: all 0.25s ease;
 }
 .stButton > button:hover {
    background: #c8e6c9;
    border-color: #81c784;
    color: #1b5e20;
+   box-shadow: 0 2px 8px rgba(46,125,50,0.15);
 }
 
+/* 파일 업로드 영역 */
 .stFileUploader {
    border: 2px dashed #c8e6c9 !important;
-   border-radius: 10px !important;
+   border-radius: 12px !important;
    background: #fafafa !important;
 }
 
+/* dataframe */
+div[data-testid="stDataFrame"] {
+   border-radius: 8px !important;
+   border: 1px solid #e0e0e0 !important;
+}
+
+/* 스크롤바 */
 ::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: #f1f8e9; }
+::-webkit-scrollbar-track { background: #f1f8e9; border-radius: 4px; }
 ::-webkit-scrollbar-thumb { background: #a5d6a7; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #81c784; }
+
+/* divider */
+hr {
+   border-color: #c8e6c9 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -146,21 +197,10 @@ div[data-testid="stWarning"] {
 # ────────────────────────────────────────────────────
 st.markdown("""
 <div class="banner-box">
-   <span style="font-size:34px;">🌱</span>
-   <span style="
-      font-size: 24px;
-      font-weight: 700;
-      color: #2e7d32;
-      letter-spacing: 0.3px;
-   ">극지식물 생육 차이 분석</span>
-   <span style="
-      font-size: 15px;
-      color: #558b2f;
-      font-weight: 400;
-      border-left: 1px solid #c8e6c9;
-      padding-left: 14px;
-   ">어떤 지표가 생장을 가장 잘 보여줄까?</span>
-   <span style="font-size:30px; opacity:0.7;">☁️</span>
+   <span style="font-size:36px;">🌱</span>
+   <span class="banner-title">극지식물 생육 차이 분석</span>
+   <span class="banner-sub">어떤 지표가 생장을 가장 잘 보여줄까?</span>
+   <span style="font-size:30px; opacity:0.7;">🌿</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -180,7 +220,7 @@ def read_csv(file):
     return pd.DataFrame()
 
 # ────────────────────────────────────────────────────
-# 열 이름 표준화
+# 열 이름 표준화 (KeyError 방지)
 # ────────────────────────────────────────────────────
 def std_cols(df):
     df = df.copy()
@@ -260,31 +300,32 @@ def extract_school(filename):
     return base[:12] if len(base) > 0 else "우리 학교"
 
 # ────────────────────────────────────────────────────
-# Plotly 테마 헬퍼 (흰 배경)
+# Plotly 테마 헬퍼 (흰 배경 · 둥근 그리드)
 # ────────────────────────────────────────────────────
 def apply_plot_theme(fig):
     fig.update_layout(
-        paper_bgcolor="rgba(255,255,255,0.95)",
-        plot_bgcolor="rgba(255,255,255,0.95)",
+        paper_bgcolor="rgba(255,255,255,0.96)",
+        plot_bgcolor="rgba(255,255,255,0.96)",
         font=dict(
-            family="Malgun Gothic, Apple SD Gothic Neo, sans-serif",
-            color="#455a64",
+            family="Gowun Dodum, Noto Sans KR, Malgun Gothic, sans-serif",
+            color="#546e7a",
         ),
     )
     fig.update_xaxes(
-        gridcolor="rgba(165,214,167,0.25)",
-        zerolinecolor="rgba(165,214,167,0.35)",
-        tickfont=dict(color="#607d8b"),
-        linecolor="rgba(165,214,167,0.4)",
+        gridcolor="rgba(165,214,167,0.28)",
+        zerolinecolor="rgba(165,214,167,0.4)",
+        tickfont=dict(color="#78909c", family="Gowun Dodum, sans-serif"),
+        linecolor="rgba(165,214,167,0.5)",
         linewidth=1,
     )
     fig.update_yaxes(
-        gridcolor="rgba(165,214,167,0.25)",
-        zerolinecolor="rgba(165,214,167,0.35)",
-        tickfont=dict(color="#607d8b"),
-        linecolor="rgba(165,214,167,0.4)",
+        gridcolor="rgba(165,214,167,0.28)",
+        zerolinecolor="rgba(165,214,167,0.4)",
+        tickfont=dict(color="#78909c", family="Gowun Dodum, sans-serif"),
+        linecolor="rgba(165,214,167,0.5)",
         linewidth=1,
     )
+    fig.update_layout(margin=dict(l=50, r=20, t=55, b=50))
 
 # ────────────────────────────────────────────────────
 # 사이드바
@@ -306,11 +347,11 @@ growth_file = st.sidebar.file_uploader(
 
 with st.sidebar.expander("💡 사용 안내", expanded=False):
     st.markdown("""
-    - 두 CSV를 업로드하면 자동으로 분석됩니다.
+    - 두 CSV를 업로드하면 자동으로 분석돼요.
     - 학교마다 열 이름이 달라도 앱이 알아서 맞춰 읽어요.
-    - 인코딩(utf-8-sig / cp949) 오류와 한글 깨짐을 방지합니다.
+    - 인코딩(utf-8-sig / cp949) 오류와 한글 깨짐을 방지해요.
     - 생중량(g) 열이 없으면 지상부 + 지하부 질량이 자동 합산돼요.
-    - 한 파일만 올려도 해당 탭은 동작합니다.
+    - 한 파일만 올려도 해당 탭은 정상 동작해요.
     """)
 
 st.sidebar.markdown("---")
@@ -364,21 +405,21 @@ with tab1:
                 st.markdown('<div class="paper-card">', unsafe_allow_html=True)
                 st.subheader("🎯 실험 목적")
                 st.markdown("""
-                이 실험은 **극지식물 개체의 생육을 가장 잘 드러내는 지표가 무엇인지** 찾기 위해 진행되었습니다.
+                이 실험은 **극지식물 개체의 생육을 가장 잘 드러내는 지표가 무엇인지** 찾기 위해 진행했어요.
 
                 같은 스마트팜 환경에서 자라는 식물이라도 개체마다 잎 수, 줄기 길이, 생중량 등에 차이가 나타나요.  
-                이 차이를 여러 지표로 비교하고, 어떤 지표가 생장 정도를 가장 잘 설명하는지 확인하는 것이 목적이에요.
+                이 차이를 여러 지표로 비교하고, 어떤 지표가 생장 정도를 가장 잘 설명하는지 알아보는 것이 목적이에요.
                 """.strip())
                 st.markdown("---")
                 st.markdown(
                     "📌 *상관계수*: 두 값이 함께 증가하거나 감소하는 정도를 "
-                    "**-1 ~ 1** 사이 숫자로 나타낸 값. "
+                    "**-1 ~ 1** 사이 숫자로 나타낸 값이에요. "
                     "1에 가까울수록 함께 증가, -1에 가까울수록 함께 감소, "
                     "0에 가까울수록 관계가 약해요."
                 )
                 st.markdown(
                     "📌 *생중량*: 식물을 수확해 마른 잎·줄기·뿌리의 무게를 "
-                    "모두 합한 값. 식물의 전체 생장량을 나타내는 대표 지표예요."
+                    "모두 합한 값이에요. 식물의 전체 생장량을 나타내는 대표 지표예요."
                 )
                 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -536,7 +577,7 @@ with tab2:
 
             st.markdown("---")
 
-            # ── 통계 지표 카드 (delta_info 인자 제거) ──
+            # ── 통계 지표 카드 (delta_info 인자 없음) ──
             if stat_cols:
                 n_card = min(4, len(stat_cols))
                 cols_card = st.columns(n_card)
@@ -574,13 +615,13 @@ with tab2:
 
             st.markdown("---")
 
-            # ── 원본 데이터 및 다운로드 (key 고유 부여) ──
+            # ── 원본 데이터 및 다운로드 ──
             with st.expander("📋 생육 데이터 원본 테이블 및 CSV 다운로드"):
                 st.dataframe(gd, width="stretch")
                 if not gd.empty:
                     csv_bytes = gd.to_csv(index=False).encode("utf-8-sig")
                     st.download_button(
-                        label="⬇ 생육 결과 CSV 다운로드 (Tab2)",
+                        label="⬇ 생육 결과 CSV 다운로드",
                         data=csv_bytes,
                         file_name=f"{school_name}_생육결과데이터.csv",
                         mime="text/csv",
@@ -619,9 +660,9 @@ with tab3:
             ]
 
             palette = {
-                "잎 수": "#558b2f",
-                "지상부 길이": "#2e7d32",
-                "지하부 길이": "#66bb6a",
+                "잎 수": "#66bb6a",
+                "지상부 길이": "#43a047",
+                "지하부 길이": "#26a69a",
             }
 
             if avail_pairs:
@@ -653,10 +694,10 @@ with tab3:
                             x=x_vals, y=y_vals,
                             mode="markers",
                             marker=dict(
-                                size=10,
+                                size=11,
                                 color=color,
-                                line=dict(width=1.5, color="rgba(255,255,255,0.8)"),
-                                opacity=0.9,
+                                line=dict(width=1.5, color="rgba(255,255,255,0.85)"),
+                                opacity=0.92,
                             ),
                             hovertemplate=(
                                 f"<b>{x_label}</b>: %{{x:.1f}}<br>"
@@ -687,7 +728,7 @@ with tab3:
                         xaxis_title=x_label,
                         yaxis_title="생중량 (g)",
                         width=720,
-                        height=440,
+                        height=450,
                     )
                     apply_plot_theme(fig_s)
                     st.plotly_chart(fig_s, width="stretch")
@@ -723,18 +764,18 @@ with tab3:
                         y=gd_b[bio_col],
                         mode="markers+lines",
                         marker=dict(
-                            size=9,
+                            size=10,
                             color=gd_b[bio_col],
                             colorscale=[
                                 [0, "#81c784"],
                                 [0.5, "#43a047"],
                                 [1, "#e57373"],
                             ],
-                            line=dict(width=1.5, color="rgba(255,255,255,0.8)"),
+                            line=dict(width=1.5, color="rgba(255,255,255,0.85)"),
                             showscale=True,
                             colorbar=dict(
                                 title="생중량 (g)",
-                                tickfont=dict(color="#607d8b"),
+                                tickfont=dict(color="#78909c"),
                             ),
                         ),
                         line=dict(color="rgba(165,214,167,0.5)", width=1.2),
@@ -763,7 +804,7 @@ with tab3:
                     xaxis_title="개체번호",
                     yaxis_title="생중량 (g)",
                     width=740,
-                    height=420,
+                    height=430,
                 )
                 st.plotly_chart(fig_dist, width="stretch")
 
@@ -798,10 +839,10 @@ with tab3:
                             x=x_sub, y=y_sub,
                             mode="markers",
                             marker=dict(
-                                size=10,
+                                size=11,
                                 color="#43a047",
-                                line=dict(width=1.5, color="rgba(255,255,255,0.8)"),
-                                opacity=0.9,
+                                line=dict(width=1.5, color="rgba(255,255,255,0.85)"),
+                                opacity=0.92,
                             ),
                             hovertemplate=(
                                 "<b>지상부 길이</b>: %{{x:.1f}}mm<br>"
@@ -828,7 +869,7 @@ with tab3:
                         xaxis_title="지상부 길이 (mm)",
                         yaxis_title="지하부 길이 (mm)",
                         width=700,
-                        height=430,
+                        height=440,
                     )
                     st.plotly_chart(fig_sub, width="stretch")
                     st.info(
@@ -843,13 +884,13 @@ with tab3:
 
             st.markdown("---")
 
-            # ── 원본 데이터 및 다운로드 (key 고유 부여) ──
+            # ── 원본 데이터 및 다운로드 ──
             with st.expander("📋 생육 데이터 원본 테이블 및 CSV 다운로드"):
                 st.dataframe(gd, width="stretch")
                 if not gd.empty:
                     csv_bytes = gd.to_csv(index=False).encode("utf-8-sig")
                     st.download_button(
-                        label="⬇ 생육 결과 CSV 다운로드 (Tab3)",
+                        label="⬇ 생육 결과 CSV 다운로드",
                         data=csv_bytes,
                         file_name=f"{school_name}_생육결과데이터.csv",
                         mime="text/csv",
